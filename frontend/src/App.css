@@ -1,0 +1,303 @@
+/* src/LoginPage.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Conteneur principal - disposition horizontale sur PC */
+.login-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+
+/* ==================== */
+/* SECTION GAUCHE - BLEUE */
+/* ==================== */
+.left-section {
+    flex: 1;
+    background: linear-gradient(135deg, #1877f2 0%, #0d5cb6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.left-content {
+    max-width: 450px;
+    text-align: left;
+}
+
+.facebook-logo {
+    font-size: 56px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 20px;
+    letter-spacing: -1.5px;
+}
+
+.explore-text {
+    color: white;
+    font-size: 32px;
+    line-height: 1.3;
+    font-weight: 500;
+}
+
+/* ==================== */
+/* SECTION DROITE - BLANCHE */
+/* ==================== */
+.right-section {
+    flex: 1;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.right-content {
+    width: 100%;
+    max-width: 400px;
+}
+
+.right-content h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1b1f23;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Champs de formulaire */
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 16px 18px;
+    font-size: 17px;
+    border: 1px solid #dddfe2;
+    border-radius: 8px;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #1877f2;
+    box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
+}
+
+.input-group input::placeholder {
+    color: #8a8d91;
+    font-size: 16px;
+}
+
+/* Bouton de connexion */
+.login-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #1877f2 0%, #0d5cb6 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 8px 0 24px 0;
+}
+
+.login-btn:hover {
+    background: linear-gradient(135deg, #166fe5 0%, #0c4f9e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+/* Liens */
+.links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid #dadde1;
+    padding-top: 24px;
+}
+
+.forgot-link,
+.create-link {
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.2s ease;
+}
+
+.forgot-link {
+    color: #1877f2;
+}
+
+.forgot-link:hover {
+    color: #0d5cb6;
+    text-decoration: underline;
+}
+
+.create-link {
+    color: #42b72a;
+    font-weight: 500;
+}
+
+.create-link:hover {
+    color: #36a420;
+    text-decoration: underline;
+}
+
+/* Footer - caché sur PC, visible sur mobile */
+.footer {
+    display: none;
+}
+
+/* ==================== */
+/* RESPONSIVE - MOBILE */
+/* ==================== */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+    }
+
+    /* Section gauche sur mobile */
+    .left-section {
+        padding: 50px 30px;
+        text-align: center;
+    }
+
+    .left-content {
+        text-align: center;
+    }
+
+    .facebook-logo {
+        font-size: 42px;
+        margin-bottom: 12px;
+    }
+
+    .explore-text {
+        font-size: 22px;
+    }
+
+    .explore-text br {
+        display: none;
+    }
+
+    /* Section droite sur mobile */
+    .right-section {
+        padding: 30px 20px 20px;
+    }
+
+    .right-content h2 {
+        font-size: 24px;
+        margin-bottom: 24px;
+    }
+
+    .input-group input {
+        padding: 14px 16px;
+        font-size: 16px;
+    }
+
+    .login-btn {
+        padding: 12px;
+        font-size: 17px;
+    }
+
+    /* Footer visible sur mobile */
+    .footer {
+        display: block;
+        text-align: center;
+        color: #8a8d91;
+        font-size: 13px;
+        padding: 24px 20px 30px;
+        background: white;
+        border-top: 1px solid #e4e6eb;
+    }
+}
+
+/* ==================== */
+/* PETITS MOBILES (max 480px) */
+/* ==================== */
+@media (max-width: 480px) {
+    .left-section {
+        padding: 40px 20px;
+    }
+
+    .facebook-logo {
+        font-size: 36px;
+    }
+
+    .explore-text {
+        font-size: 18px;
+    }
+
+    .right-section {
+        padding: 24px 16px 16px;
+    }
+
+    .right-content h2 {
+        font-size: 22px;
+    }
+
+    .input-group input {
+        padding: 12px 14px;
+        font-size: 15px;
+    }
+
+    .login-btn {
+        padding: 11px;
+        font-size: 16px;
+    }
+
+    .forgot-link,
+    .create-link {
+        font-size: 14px;
+    }
+}
+
+/* ==================== */
+/* TRÈS GRANDS ÉCRANS (optionnel) */
+/* ==================== */
+@media (min-width: 1400px) {
+    .facebook-logo {
+        font-size: 68px;
+    }
+
+    .explore-text {
+        font-size: 40px;
+    }
+
+    .right-content {
+        max-width: 480px;
+    }
+
+    .right-content h2 {
+        font-size: 32px;
+    }
+
+    .input-group input {
+        padding: 18px 20px;
+        font-size: 18px;
+    }
+
+    .login-btn {
+        padding: 16px;
+        font-size: 20px;
+    }
+
+}
