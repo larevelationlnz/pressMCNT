@@ -91,18 +91,18 @@ const AuthorModal = ({ isOpen, onClose, onSubmit, author }) => {
       return;
     }
     setSubmitting(true);
-    const today = new Date().toISOString().split('T')[0];
     try {
-      await onSubmit({
-        id: author ? author.id : Date.now(),
+      const payload = {
         lastName: form.lastName.trim(),
         firstName: form.firstName.trim(),
         profession: form.profession.trim(),
         cniNumber: form.cniNumber.trim(),
         email: form.email.trim(),
-        password: form.password.trim(),
-        date: author ? author.date : today,
-      });
+      };
+      if (form.password.trim()) {
+        payload.password = form.password.trim();
+      }
+      await onSubmit(payload);
       onClose();
     } catch (err) {
       console.error(err);

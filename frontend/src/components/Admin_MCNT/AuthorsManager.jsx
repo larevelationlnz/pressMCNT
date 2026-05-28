@@ -192,7 +192,7 @@ const AuthorsManager = ({ authors, onAddClick, onEditClick, onDeleteClick }) => 
                     {author.email}
                   </td>
                   <td style={{ padding: '10px 12px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                    {author.date}
+                    {author.createdAt ? new Date(author.createdAt).toLocaleDateString('fr-FR') : '—'}
                   </td>
                   <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>

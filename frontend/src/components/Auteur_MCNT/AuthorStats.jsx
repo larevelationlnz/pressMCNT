@@ -1,25 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChartIcon, CheckedBoxIcon, DocumentIcon, HourglassIcon } from '../icons/CustomIcons'
+import { api } from '../../utils/api'
 
-const API = 'http://localhost:5000/api/publications'
-
-const AuthorStats = ({ user }) => {
+const AuthorStats = () => {
   const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [isConnected, setIsConnected] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${API}?authorId=${user.id}`)
-        if (!res.ok) throw new Error('Erreur chargement')
-        const data = await res.json()
+        const data = await api.get('/publications')
         setItems(data)
+        setIsConnected(true)
       } catch (err) {
         console.error(err)
+        setIsConnected(false)
+      } finally {
+        setLoading(false)
       }
     }
-
-    if (user) fetchStats()
-  }, [user])
+    fetchStats()
+  }, [])
 
   const stats = useMemo(() => {
     const total = items.length
@@ -28,23 +30,31 @@ const AuthorStats = ({ user }) => {
     const pending = items.filter((item) => item.status === 'pending').length
     const percent = total ? Math.round((published / total) * 100) : 0
 
-    return { total, published, draft, pending, percent }
+    // Calculer le nombre d'articles révisés (updatedAt différent de createdAt)
+    const modifiedCount = items.filter((item) => {
+      if (!item.createdAt || !item.updatedAt) return false
+      return new Date(item.createdAt).getTime() !== new Date(item.updatedAt).getTime()
+    }).length
+
+    return { total, published, draft, pending, percent, modifiedCount }
   }, [items])
 
   const progressRows = [
-    { label: `Publie (${stats.published})`, value: stats.published, className: 'fill-published' },
+    { label: `Publié (${stats.published})`, value: stats.published, className: 'fill-published' },
     { label: `Brouillon (${stats.draft})`, value: stats.draft, className: 'fill-draft' },
     { label: `En attente (${stats.pending})`, value: stats.pending, className: 'fill-pending' }
   ]
 
   const getPercent = (value) => (stats.total ? Math.round((value / stats.total) * 100) : 0)
 
+  if (loading) return <div className="stats-panel"><p style={{ color: 'var(--text-muted)' }}>Chargement des statistiques...</p></div>
+
   return (
     <div className="stats-panel">
       <div className="panel-header">
         <div className="panel-title-container">
           <span className="panel-title-icon"><ChartIcon size={24} /></span>
-          <h2 className="panel-title">Statistiques d'Activite</h2>
+          <h2 className="panel-title">Statistiques d'Activité</h2>
         </div>
       </div>
 
@@ -60,7 +70,7 @@ const AuthorStats = ({ user }) => {
           <span className="kpi-icon-wrapper kpi-published"><CheckedBoxIcon size={20} /></span>
           <span className="kpi-details">
             <strong className="kpi-value">{stats.published}</strong>
-            <span className="kpi-label">Articles publies</span>
+            <span className="kpi-label">Articles publiés</span>
           </span>
         </div>
         <div className="stats-kpi-card">
@@ -81,7 +91,7 @@ const AuthorStats = ({ user }) => {
 
       <div className="analytics-layout">
         <div className="analytics-card">
-          <h3 className="analytics-title">Repartition des publications</h3>
+          <h3 className="analytics-title">Répartition des publications</h3>
           <div className="progress-list">
             {progressRows.map((row) => {
               const percent = getPercent(row.value)
@@ -103,16 +113,19 @@ const AuthorStats = ({ user }) => {
         <div className="analytics-card performance-card">
           <h3 className="analytics-title">Indicateurs de Performance</h3>
           <div className="performance-row">
-            <span>Taux de Completion :</span>
+            <span>Taux de Publication :</span>
             <strong>{stats.percent}%</strong>
           </div>
           <div className="performance-row">
-            <span>Moyenne de modification :</span>
-            <strong>Hebdomadaire</strong>
+            <span>Articles modifiés :</span>
+            <strong>{stats.modifiedCount} / {stats.total}</strong>
           </div>
           <div className="performance-row">
-            <span>Statut du systeme :</span>
-            <strong className="sync-badge">Connecte & Synchro</strong>
+            <span>Statut du système :</span>
+            <strong className={isConnected ? "sync-badge" : "sync-badge sync-offline"} 
+                    style={isConnected ? {} : { background: '#ffebee', color: '#c62828' }}>
+              {isConnected ? "Connecté & Synchro" : "Hors ligne (Erreur)"}
+            </strong>
           </div>
         </div>
       </div>

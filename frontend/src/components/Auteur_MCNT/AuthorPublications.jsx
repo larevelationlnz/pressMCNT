@@ -9,12 +9,11 @@ import {
   PencilIcon,
   TrashIcon
 } from '../icons/CustomIcons'
-
-const API = 'http://localhost:5000/api/publications'
+import { api } from '../../utils/api'
 
 const STATUS_META = {
   published: {
-    label: 'Publie',
+    label: 'Publié',
     className: 'status-publie',
     icon: <CheckedBoxIcon size={14} />
   },
@@ -32,34 +31,33 @@ const STATUS_META = {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toISOString().slice(0, 10)
+  return new Date(value).toLocaleDateString('fr-FR')
 }
 
-const AuthorPublications = ({ user }) => {
+const AuthorPublications = () => {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [previewItem, setPreviewItem] = useState(null)
   const [search, setSearch] = useState('')
 
   const fetchItems = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API}?authorId=${user.id}`)
-      if (!res.ok) throw new Error('Erreur chargement')
-      const data = await res.json()
+      const data = await api.get('/publications')
       setItems(data)
     } catch (err) {
       console.error(err)
-      alert('Erreur lors du chargement des publications')
+      alert('Erreur lors du chargement des publications : ' + err.message)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (user) fetchItems()
-  }, [user])
+    fetchItems()
+  }, [])
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -67,7 +65,7 @@ const AuthorPublications = ({ user }) => {
 
     return items.filter((item) => {
       const statusLabel = STATUS_META[item.status]?.label || item.status
-      return [item.title, item.status, statusLabel, formatDate(item.updatedAt)]
+      return [item.title, item.categoryName || '', item.status, statusLabel, formatDate(item.updatedAt)]
         .join(' ')
         .toLowerCase()
         .includes(query)
@@ -87,41 +85,24 @@ const AuthorPublications = ({ user }) => {
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cette publication ?')) return
     try {
-      const res = await fetch(`${API}/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Erreur suppression')
+      await api.delete(`/publications/${id}`)
       setItems(items.filter((item) => item.id !== id))
     } catch (err) {
       console.error(err)
-      alert('Impossible de supprimer')
+      alert('Impossible de supprimer : ' + err.message)
     }
   }
 
   const handleSave = async (payload) => {
-    try {
-      if (editing) {
-        const res = await fetch(`${API}/${editing.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (!res.ok) throw new Error('Erreur modification')
-        const updated = await res.json()
-        setItems(items.map((item) => (item.id === updated.id ? updated : item)))
-      } else {
-        const res = await fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, authorId: user.id })
-        })
-        if (!res.ok) throw new Error('Erreur creation')
-        const created = await res.json()
-        setItems([created, ...items])
-      }
-      setModalOpen(false)
-    } catch (err) {
-      console.error(err)
-      alert('Erreur sauvegarde')
+    if (editing) {
+      const updated = await api.put(`/publications/${editing.id}`, payload)
+      // On recharge les publications pour avoir les infos enrichies (comme categoryName)
+      fetchItems()
+    } else {
+      const created = await api.post('/publications', payload)
+      fetchItems()
     }
+    setModalOpen(false)
   }
 
   return (
@@ -141,7 +122,7 @@ const AuthorPublications = ({ user }) => {
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Rechercher un article par titre, statut ou date..."
+          placeholder="Rechercher un article par titre, catégorie, statut..."
         />
       </div>
 
@@ -150,7 +131,8 @@ const AuthorPublications = ({ user }) => {
           <thead>
             <tr>
               <th>Titre</th>
-              <th>Derniere modif</th>
+              <th>Catégorie</th>
+              <th>Dernière modif</th>
               <th>Statut</th>
               <th>Actions</th>
             </tr>
@@ -158,11 +140,11 @@ const AuthorPublications = ({ user }) => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="4" className="empty-cell">Chargement...</td>
+                <td colSpan="5" className="empty-cell">Chargement...</td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan="4" className="empty-cell">Aucune publication trouvee</td>
+                <td colSpan="5" className="empty-cell">Aucune publication trouvée</td>
               </tr>
             ) : (
               filteredItems.map((item) => {
@@ -170,7 +152,10 @@ const AuthorPublications = ({ user }) => {
 
                 return (
                   <tr key={item.id}>
-                    <td className="article-title-cell">{item.title}</td>
+                    <td className="article-title-cell" style={{ fontWeight: 600 }}>{item.title}</td>
+                    <td className="article-category-cell" style={{ color: 'var(--text-muted)' }}>
+                      {item.categoryName || '—'}
+                    </td>
                     <td className="article-date-cell">{formatDate(item.updatedAt)}</td>
                     <td>
                       <span className={`status-badge ${status.className}`}>
@@ -186,7 +171,7 @@ const AuthorPublications = ({ user }) => {
                         <button className="btn-action-mock btn-action-trash" onClick={() => handleDelete(item.id)} title="Supprimer">
                           <TrashIcon size={16} />
                         </button>
-                        <button className="btn-action-mock btn-action-eye" title="Voir">
+                        <button className="btn-action-mock btn-action-eye" onClick={() => setPreviewItem(item)} title="Voir">
                           <EyeIcon size={16} />
                         </button>
                       </div>
@@ -199,12 +184,47 @@ const AuthorPublications = ({ user }) => {
         </table>
       </div>
 
+      {/* Modal d'édition/création */}
       <ArticleModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         item={editing}
       />
+
+      {/* Modal de prévisualisation lecture seule */}
+      {previewItem && (
+        <div className="modal-overlay" onClick={() => setPreviewItem(null)}>
+          <div className="modal-content" style={{ maxWidth: 650, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {previewItem.categoryName && (
+                  <span className="article-card-badge" style={{ alignSelf: 'flex-start', marginBottom: 4 }}>
+                    {previewItem.categoryName}
+                  </span>
+                )}
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{previewItem.title}</h3>
+              </div>
+              <button className="modal-close" onClick={() => setPreviewItem(null)}>✕</button>
+            </div>
+            <div style={{ padding: '0 0 20px 0', fontSize: '0.95rem', lineHeight: 1.6 }}>
+              {previewItem.imageUrl && (
+                <div style={{ width: '100%', height: 220, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+                  <img src={previewItem.imageUrl} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+              {previewItem.excerpt && (
+                <p style={{ fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', paddingBottom: 12, marginBottom: 12 }}>
+                  {previewItem.excerpt}
+                </p>
+              )}
+              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-main)' }}>
+                {previewItem.content || 'Aucun contenu.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
