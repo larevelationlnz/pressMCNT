@@ -1,75 +1,158 @@
 const db = require('../config/db');
 
-/**
- * Récupérer les publications d'un auteur (ou toutes si pas d'authorId)
- */
+// ── PUBLIQUES ──────────────────────────────────────────────────
+
+// GET /api/publications/categories
+exports.getCategories = async (req, res) => {
+  try {
+    const r = await db.query('SELECT id, name, slug FROM categories ORDER BY name');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ message: 'Erreur serveur.' }); }
+};
+
+// GET /api/publications/public?categoryId=&search=
+exports.getPublicArticles = async (req, res) => {
+  const { categoryId, search } = req.query;
+  const params = []; let where = `WHERE p.status = 'published'`; let i = 1;
+  if (categoryId) { where += ` AND p.category_id = $${i++}`; params.push(categoryId); }
+  if (search)     { where += ` AND p.title ILIKE $${i++}`;   params.push(`%${search}%`); }
+  try {
+    const r = await db.query(`
+      SELECT p.id, p.title, p.excerpt, p.image_url AS "imageUrl",
+             p.published_at  AS "publishedAt",
+             u.first_name || ' ' || u.last_name AS "authorName",
+             c.name AS "categoryName", c.slug AS "categorySlug"
+      FROM publications p
+      JOIN users u ON u.id = p.author_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      ${where}
+      ORDER BY p.published_at DESC`, params);
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ message: 'Erreur serveur.' }); }
+};
+
+// GET /api/publications/public/:id
+exports.getPublicArticleById = async (req, res) => {
+  try {
+    const r = await db.query(`
+      SELECT p.id, p.title, p.content, p.excerpt, p.image_url AS "imageUrl",
+             p.published_at AS "publishedAt",
+             u.first_name || ' ' || u.last_name AS "authorName",
+             u.profession   AS "authorProfession",
+             c.name AS "categoryName", c.slug AS "categorySlug"
+      FROM publications p
+      JOIN users u ON u.id = p.author_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      WHERE p.id = $1 AND p.status = 'published'`, [req.params.id]);
+    if (!r.rows.length)
+      return res.status(404).json({ message: 'Article non trouvé ou non publié.' });
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ message: 'Erreur serveur.' }); }
+};
+
+// ── PROTÉGÉES ──────────────────────────────────────────────────
+
+// GET /api/publications
 exports.getPublications = async (req, res) => {
+  const isAdmin = req.user.role === 'admin';
+  const params  = []; let where = ''; let i = 1;
+  if (!isAdmin) { where = `WHERE p.author_id = $${i++}`; params.push(req.user.id); }
   try {
-    const { authorId } = req.query;
-    let queryText = `SELECT id, author_id AS "authorId", title, status, updated_at AS "updatedAt" FROM publications`;
-    const params = [];
-    if (authorId) {
-      queryText += ' WHERE author_id = $1 ORDER BY updated_at DESC';
-      params.push(authorId);
-    } else {
-      queryText += ' ORDER BY updated_at DESC';
-    }
-    const result = await db.query(queryText, params);
-    return res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('[Publication Controller] getPublications error:', error);
-    return res.status(500).json({ message: 'Erreur lors de la récupération des publications.' });
-  }
+    const r = await db.query(`
+      SELECT p.id, p.title, p.status, p.excerpt, p.image_url AS "imageUrl",
+             p.author_id   AS "authorId",
+             p.category_id AS "categoryId",
+             p.published_at AS "publishedAt",
+             p.created_at  AS "createdAt",
+             p.updated_at  AS "updatedAt",
+             u.first_name || ' ' || u.last_name AS "authorName",
+             c.name AS "categoryName"
+      FROM publications p
+      JOIN users u ON u.id = p.author_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      ${where}
+      ORDER BY p.updated_at DESC`, params);
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ message: 'Erreur serveur.' }); }
 };
 
-/**
- * Créer une publication
- */
+// POST /api/publications
 exports.createPublication = async (req, res) => {
+  const { title, content, excerpt, status, categoryId, imageUrl } = req.body;
+  if (!title?.trim())
+    return res.status(400).json({ message: 'Le titre est requis.' });
+  const finalStatus = ['draft','pending','published'].includes(status) ? status : 'draft';
+  const publishedAt = finalStatus === 'published' ? new Date() : null;
   try {
-    const { authorId, title, status } = req.body;
-    if (!authorId || !title) return res.status(400).json({ message: 'authorId et title requis.' });
-    const insertText = `INSERT INTO publications (author_id, title, status, updated_at) VALUES ($1, $2, $3, NOW()) RETURNING id, author_id AS "authorId", title, status, updated_at AS "updatedAt"`;
-    const result = await db.query(insertText, [authorId, title, status || 'draft']);
-    return res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('[Publication Controller] createPublication error:', error);
-    return res.status(500).json({ message: 'Erreur lors de la création de la publication.' });
-  }
+    const r = await db.query(`
+      INSERT INTO publications (author_id, category_id, title, content, excerpt, status, published_at, image_url)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      RETURNING id, title, status, excerpt, image_url AS "imageUrl",
+                author_id AS "authorId", category_id AS "categoryId",
+                published_at AS "publishedAt",
+                created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [req.user.id, categoryId || null, title.trim(),
+       content || '', excerpt || '', finalStatus, publishedAt, imageUrl || null]);
+    res.status(201).json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Erreur serveur.' }); }
 };
 
-/**
- * Modifier une publication
- */
+// PUT /api/publications/:id
 exports.updatePublication = async (req, res) => {
+  const { id } = req.params;
+  const isAdmin = req.user.role === 'admin';
+  const { title, content, excerpt, status, categoryId, imageUrl } = req.body;
   try {
-    const { id } = req.params;
-    const { title, status } = req.body;
-    // Vérifier existence
-    const check = await db.query('SELECT id FROM publications WHERE id = $1', [id]);
-    if (check.rows.length === 0) return res.status(404).json({ message: 'Publication non trouvée.' });
+    const chk = await db.query('SELECT author_id FROM publications WHERE id=$1', [id]);
+    if (!chk.rows.length)
+      return res.status(404).json({ message: 'Publication non trouvée.' });
+    if (!isAdmin && chk.rows[0].author_id !== req.user.id)
+      return res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres articles.' });
 
-    const updateText = `UPDATE publications SET title = $1, status = $2, updated_at = NOW() WHERE id = $3 RETURNING id, author_id AS "authorId", title, status, updated_at AS "updatedAt"`;
-    const result = await db.query(updateText, [title || null, status || 'draft', id]);
-    return res.status(200).json(result.rows[0]);
-  } catch (error) {
-    console.error('[Publication Controller] updatePublication error:', error);
-    return res.status(500).json({ message: 'Erreur lors de la modification de la publication.' });
-  }
+    const fields = [
+      'title = COALESCE($1, title)',
+      'content = COALESCE($2, content)',
+      'excerpt = COALESCE($3, excerpt)',
+      'status = COALESCE($4, status)',
+      'category_id = COALESCE($5, category_id)',
+      'updated_at = NOW()'
+    ];
+    const values = [title||null, content||null, excerpt||null, status||null, categoryId||null];
+    let idx = 6;
+
+    if (imageUrl !== undefined) {
+      fields.push(`image_url = $${idx++}`);
+      values.push(imageUrl);
+    }
+
+    // Gestion du published_at
+    fields.push(`published_at = CASE WHEN $4 = 'published' AND published_at IS NULL THEN NOW() ELSE published_at END`);
+
+    values.push(id);
+    const queryStr = `
+      UPDATE publications SET ${fields.join(', ')}
+      WHERE id = $${idx}
+      RETURNING id, title, status, excerpt, image_url AS "imageUrl",
+                author_id AS "authorId", category_id AS "categoryId",
+                published_at AS "publishedAt", updated_at AS "updatedAt"
+    `;
+
+    const r = await db.query(queryStr, values);
+    res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Erreur serveur.' }); }
 };
 
-/**
- * Supprimer une publication
- */
+// DELETE /api/publications/:id
 exports.deletePublication = async (req, res) => {
+  const { id } = req.params;
+  const isAdmin = req.user.role === 'admin';
   try {
-    const { id } = req.params;
-    const check = await db.query('SELECT id FROM publications WHERE id = $1', [id]);
-    if (check.rows.length === 0) return res.status(404).json({ message: 'Publication non trouvée.' });
-    await db.query('DELETE FROM publications WHERE id = $1', [id]);
-    return res.status(200).json({ message: 'Publication supprimée avec succès.', deletedId: Number(id) });
-  } catch (error) {
-    console.error('[Publication Controller] deletePublication error:', error);
-    return res.status(500).json({ message: 'Erreur lors de la suppression de la publication.' });
-  }
+    const chk = await db.query('SELECT author_id FROM publications WHERE id=$1', [id]);
+    if (!chk.rows.length)
+      return res.status(404).json({ message: 'Publication non trouvée.' });
+    if (!isAdmin && chk.rows[0].author_id !== req.user.id)
+      return res.status(403).json({ message: 'Vous ne pouvez supprimer que vos propres articles.' });
+    await db.query('DELETE FROM publications WHERE id=$1', [id]);
+    res.json({ message: 'Publication supprimée.', deletedId: Number(id) });
+  } catch (err) { res.status(500).json({ message: 'Erreur serveur.' }); }
 };
