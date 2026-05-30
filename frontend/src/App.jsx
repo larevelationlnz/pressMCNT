@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { getSession, saveSession, clearSession, api } from './utils/api'
 import LoginPage         from './components/Login/LoginPage'
 import AdminLayout       from './components/Admin_MCNT/AdminLayout'
@@ -8,17 +9,15 @@ import './App.css'
 import './index.css'
 
 function App() {
-  // 'login' | 'admin' | 'author' | 'public'
-  const [view,    setView]    = useState('login')
   const [session, setSession] = useState(null)   // { token, user: { id, email, role, … } }
   const [loading, setLoading] = useState(true)   // vérifie session au démarrage
+  const navigate = useNavigate()
 
   // ── Restaurer la session depuis localStorage au montage ──────
   useEffect(() => {
     const saved = getSession()
     if (saved) {
       setSession(saved)
-      setView(saved.user.role === 'admin' ? 'admin' : 'author')
     }
     setLoading(false)
   }, [])
@@ -29,44 +28,38 @@ function App() {
     // data = { token, user: { id, email, role, firstName, lastName } }
     saveSession(data.token, data.user)
     setSession({ token: data.token, user: data.user })
-    setView(data.user.role === 'admin' ? 'admin' : 'author')
+    if (data.user.role === 'admin') {
+      navigate('/admin/dashboard')
+    } else {
+      navigate('/auteur/publications')
+    }
   }
 
   // ── Logout ───────────────────────────────────────────────────
   const handleLogout = () => {
     clearSession()
     setSession(null)
-    setView('login')
+    navigate('/login')
   }
 
   if (loading) return null   // évite le flash de la page login
 
   return (
-    <>
-      {view === 'login'  && (
-        <LoginPage
-          onLogin={handleLogin}
-          onPublic={() => setView('public')}
-        />
-      )}
-      {view === 'admin'  && (
-        <AdminLayout
-          user={session?.user}
-          onLogout={handleLogout}
-        />
-      )}
-      {view === 'author' && (
-        <AuthorDashboard
-          user={session?.user}
-          onLogout={handleLogout}
-        />
-      )}
-      {view === 'public' && (
-        <PublicInterface
-          onLogin={() => setView('login')}
-        />
-      )}
-    </>
+    <Routes>
+      <Route path="/" element={<PublicInterface />} />
+      <Route path="/login" element={<LoginPage onLogin={handleLogin} onPublic={() => navigate('/')} />} />
+      <Route path="/admin/*" element={
+        session?.user?.role === 'admin' ? 
+          <AdminLayout user={session?.user} onLogout={handleLogout} /> : 
+          <Navigate to="/login" replace />
+      } />
+      <Route path="/auteur/*" element={
+        session?.user?.role === 'author' ? 
+          <AuthorDashboard user={session?.user} onLogout={handleLogout} /> : 
+          <Navigate to="/login" replace />
+      } />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 export default App

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ onLogout }) => {
+const Header = ({ user, onLogout }) => {
   return (
     <header 
       className="app-header fade-in" 
@@ -18,7 +18,9 @@ const Header = ({ onLogout }) => {
       }}
     >
       {/* Spacer to keep title centered */}
-      <div style={{ width: '120px' }} className="header-spacer-left"></div>
+      <div style={{ width: '120px', display: 'flex', alignItems: 'center', fontWeight: 600, color: '#5c6bc0', fontSize: '0.9rem', whiteSpace: 'nowrap' }} className="header-spacer-left">
+        {user ? `👤 ${user.firstName} ${user.lastName}` : ''}
+      </div>
 
       <h1 
         style={{ 

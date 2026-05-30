@@ -29,7 +29,9 @@ const DocumentIcon = () => (
   </svg>
 );
 
-const AdminSidebar = ({ activeTab, setActiveTab }) => {
+import { NavLink } from 'react-router-dom';
+
+const AdminSidebar = () => {
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de bord', Icon: ChartBarIcon },
     { id: 'authors', label: 'Gestion des auteurs', Icon: UsersIcon },
@@ -43,16 +45,14 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
       </h2>
       <nav className="sidebar-menu">
         {menuItems.map(({ id, label, Icon }) => (
-          <button
+          <NavLink
             key={id}
-            id={`sidebar-${id}`}
-            onClick={() => setActiveTab(id)}
-            className={`menu-item ${activeTab === id ? 'active' : ''}`}
-            aria-current={activeTab === id ? 'page' : undefined}
+            to={`/admin/${id}`}
+            className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
           >
             <span className="menu-item-icon"><Icon /></span>
             <span>{label}</span>
-          </button>
+          </NavLink>
         ))}
       </nav>
     </aside>

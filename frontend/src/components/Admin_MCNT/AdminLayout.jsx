@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Header              from './Header'
 import Sidebar             from './Sidebar'
 import DashboardHome       from './DashboardHome'
@@ -8,7 +9,6 @@ import PublicationsManager from './PublicationsManager'
 import { api } from '../../utils/api'
 
 const AdminLayout = ({ user, onLogout }) => {
-  const [activeTab,        setActiveTab]        = useState('dashboard')
   const [authors,          setAuthors]          = useState([])
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false)
   const [selectedAuthor,   setSelectedAuthor]   = useState(null)
@@ -48,21 +48,24 @@ const AdminLayout = ({ user, onLogout }) => {
 
   return (
     <>
-      <Header onLogout={onLogout} />
+      <Header user={user} onLogout={onLogout} />
       <main className="app-container fade-in"
             style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap:'24px', padding:'24px' }}>
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Sidebar />
         <section className="app-content" style={{ minWidth: 0 }}>
-          {activeTab === 'dashboard'    && <DashboardHome authorsCount={authors.length} />}
-          {activeTab === 'authors'      && (
-            <AuthorsManager
-              authors={authors}
-              onAddClick={handleAddClick}
-              onEditClick={handleEditClick}
-              onDeleteClick={handleDeleteClick}
-            />
-          )}
-          {activeTab === 'publications' && <PublicationsManager />}
+          <Routes>
+            <Route path="dashboard" element={<DashboardHome authorsCount={authors.length} />} />
+            <Route path="authors" element={
+              <AuthorsManager
+                authors={authors}
+                onAddClick={handleAddClick}
+                onEditClick={handleEditClick}
+                onDeleteClick={handleDeleteClick}
+              />
+            } />
+            <Route path="publications" element={<PublicationsManager />} />
+            <Route path="*" element={<Navigate to="dashboard" replace />} />
+          </Routes>
         </section>
       </main>
       <AuthorModal

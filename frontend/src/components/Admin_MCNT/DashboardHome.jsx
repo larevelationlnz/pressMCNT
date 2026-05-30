@@ -13,6 +13,8 @@ const DashboardHome = () => {
   const [stats,   setStats]   = useState(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 5
 
   useEffect(() => {
     api.get('/admin/stats')
@@ -23,6 +25,10 @@ const DashboardHome = () => {
 
   if (loading) return <div className="content-area fade-in"><p style={{color:'var(--text-muted)'}}>Chargement…</p></div>
   if (error)   return <div className="content-area fade-in"><p style={{color:'red'}}>{error}</p></div>
+
+  const recentActivity = stats?.recentActivity || []
+  const totalPages = Math.ceil(recentActivity.length / ITEMS_PER_PAGE)
+  const displayedActivity = recentActivity.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   return (
     <div className="content-area fade-in">
@@ -54,9 +60,10 @@ const DashboardHome = () => {
         <h3 className="placeholder-title" style={{ textAlign:'left', marginBottom:12 }}>
           Rapport d'activité récent
         </h3>
-        {stats.recentActivity.length === 0
+        {recentActivity.length === 0
           ? <p className="placeholder-text">Aucune activité récente.</p>
           : (
+            <>
             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'0.875rem' }}>
               <thead>
                 <tr>
@@ -70,7 +77,7 @@ const DashboardHome = () => {
                 </tr>
               </thead>
               <tbody>
-                {stats.recentActivity.map(p => (
+                {displayedActivity.map(p => (
                   <tr key={p.id}>
                     <td style={{ padding:'8px 10px', fontWeight:600 }}>{p.title}</td>
                     <td style={{ padding:'8px 10px', color:'var(--text-muted)' }}>{p.authorName}</td>
@@ -87,6 +94,19 @@ const DashboardHome = () => {
                 ))}
               </tbody>
             </table>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+              <p style={{ fontSize:'0.8rem', color:'var(--text-muted)', margin: 0 }}>
+                Affichage de {displayedActivity.length} sur {recentActivity.length} élément{recentActivity.length !== 1 ? 's' : ''}
+              </p>
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button className="btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Précédent</button>
+                  <span style={{ fontSize: '0.8rem', padding: '4px 8px', display: 'flex', alignItems: 'center' }}>Page {currentPage} sur {totalPages}</span>
+                  <button className="btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Suivant</button>
+                </div>
+              )}
+            </div>
+            </>
           )
         }
       </div>

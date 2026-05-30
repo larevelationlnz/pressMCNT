@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const UsersIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
@@ -46,6 +46,8 @@ const XIcon = () => (
 
 const AuthorsManager = ({ authors, onAddClick, onEditClick, onDeleteClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const filteredAuthors = authors.filter((author) => {
     const query = searchQuery.toLowerCase().trim();
@@ -58,6 +60,11 @@ const AuthorsManager = ({ authors, onAddClick, onEditClick, onDeleteClick }) => 
       (author.email && author.email.toLowerCase().includes(query))
     );
   });
+
+  const totalPages = Math.ceil(filteredAuthors.length / ITEMS_PER_PAGE);
+  const displayedAuthors = filteredAuthors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => { setCurrentPage(1); }, [searchQuery]);
 
   return (
     <div className="content-area fade-in" style={{ gap: '12px' }}>
@@ -156,7 +163,7 @@ const AuthorsManager = ({ authors, onAddClick, onEditClick, onDeleteClick }) => 
             </tr>
           </thead>
           <tbody>
-            {filteredAuthors.length === 0 ? (
+            {displayedAuthors.length === 0 ? (
               <tr>
                 <td colSpan="7" style={{
                   textAlign: 'center',
@@ -171,7 +178,7 @@ const AuthorsManager = ({ authors, onAddClick, onEditClick, onDeleteClick }) => 
                 </td>
               </tr>
             ) : (
-              filteredAuthors.map((author) => (
+              displayedAuthors.map((author) => (
                 <tr key={author.id} style={{ transition: 'background 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'hsl(210, 20%, 98%)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
@@ -223,12 +230,19 @@ const AuthorsManager = ({ authors, onAddClick, onEditClick, onDeleteClick }) => 
         </table>
       </div>
 
-      {/* Footer compteur total */}
-      {!searchQuery && authors.length > 0 && (
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'right', margin: 0 }}>
-          {authors.length} auteur{authors.length !== 1 ? 's' : ''} au total
+      {/* Footer compteur total et pagination */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+        <p style={{ fontSize:'0.8rem', color:'var(--text-muted)', margin: 0 }}>
+          Affichage de {displayedAuthors.length} sur {filteredAuthors.length} auteur{filteredAuthors.length !== 1 ? 's' : ''}
         </p>
-      )}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button className="btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Précédent</button>
+            <span style={{ fontSize: '0.8rem', padding: '4px 8px', display: 'flex', alignItems: 'center' }}>Page {currentPage} sur {totalPages}</span>
+            <button className="btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Suivant</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

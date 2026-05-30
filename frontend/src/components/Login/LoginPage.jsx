@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
-const LoginPage = ({ onLogin, onPublic }) => {
+const LoginPage = ({ onLogin }) => {
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
@@ -59,11 +60,10 @@ const LoginPage = ({ onLogin, onPublic }) => {
           </form>
 
           <div className="links">
-            <button onClick={onPublic}
-              style={{ background:'none', border:'none', cursor:'pointer',
-                       color:'#1877f2', fontSize:15, textDecoration:'underline' }}>
+            <Link to="/"
+              style={{ color:'#1877f2', fontSize:15, textDecoration:'underline', display:'inline-block', marginTop:'10px' }}>
               Voir les articles publiés →
-            </button>
+            </Link>
           </div>
         </div>
       </div>

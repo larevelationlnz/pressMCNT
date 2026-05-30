@@ -2,11 +2,10 @@ import { useEffect, useState, useMemo } from 'react'
 
 const API = 'http://localhost:5000/api/publications'
 
-const ArticleList = ({ onSelect }) => {
+const ArticleList = ({ onSelect, searchQuery = '' }) => {
   const [articles,  setArticles]  = useState([])
   const [categories, setCats]     = useState([])
   const [activeCat,  setActiveCat] = useState(null)
-  const [search,    setSearch]    = useState('')
   const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
@@ -21,14 +20,14 @@ const ArticleList = ({ onSelect }) => {
   const displayed = useMemo(() => {
     let list = articles
     if (activeCat) list = list.filter(a => a.categorySlug === activeCat)
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
       list = list.filter(a =>
         a.title.toLowerCase().includes(q) || a.excerpt?.toLowerCase().includes(q)
       )
     }
     return list
-  }, [articles, activeCat, search])
+  }, [articles, activeCat, searchQuery])
 
   if (loading) return (
     <div className="article-grid">
@@ -38,12 +37,6 @@ const ArticleList = ({ onSelect }) => {
 
   return (
     <div>
-      {/* Barre recherche */}
-      <div className="public-search-bar">
-        <input type="search" placeholder="Rechercher un article…"
-          value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
-
       {/* Filtres catégories */}
       <div className="category-pills">
         <button className={`category-pill ${!activeCat ? 'active' : ''}`}
@@ -79,8 +72,8 @@ const ArticleList = ({ onSelect }) => {
               const fallbackBg = gradientMap[a.categoryName] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 
               return (
-                <article key={a.id} className="article-card" onClick={() => onSelect(a.id)} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}>
-                  <div style={{ width: '100%', height: 140, background: a.imageUrl ? `url(${a.imageUrl}) center/cover no-repeat` : fallbackBg, position: 'relative', borderBottom: '1px solid var(--border-color)' }}>
+                <article key={a.id} className="article-card" onClick={() => onSelect(a.id)} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'row', padding: 0, alignItems: 'stretch', minHeight: '180px' }}>
+                  <div style={{ width: '300px', flexShrink: 0, background: a.imageUrl ? `url(${a.imageUrl}) center/cover no-repeat` : fallbackBg, position: 'relative', borderRight: '1px solid var(--border-color)' }}>
                     {a.categoryName && (
                       <span className="article-card-badge" style={{ position: 'absolute', bottom: 10, left: 10, margin: 0 }}>
                         {a.categoryName}
