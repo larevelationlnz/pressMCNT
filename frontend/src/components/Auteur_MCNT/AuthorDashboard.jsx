@@ -13,7 +13,7 @@ const AuthorDashboard = ({ user, onLogout }) => {
         </div>
         <h1>TABLEAU DE BORD AUTEUR</h1>
         <button className="btn-deconnecter" onClick={onLogout}>
-          deconnecter
+          Déconnecter
         </button>
       </header>
 
