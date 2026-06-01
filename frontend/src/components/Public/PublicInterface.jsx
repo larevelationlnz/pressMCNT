@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import ArticleList   from './ArticleList'
 import ArticleDetail from './ArticleDetail'
 
@@ -24,9 +23,6 @@ const PublicInterface = () => {
               onChange={e => setSearch(e.target.value)} 
               style={{ marginBottom: 0, border: 'none', padding: '8px 16px', borderRadius: '20px', width: '100%' }}
             />
-            <Link to="/login" title="Se connecter" style={{ textDecoration: 'none', fontSize: '1.2rem', color: '#1877f2' }}>
-              👤
-            </Link>
           </div>
         </div>
       </header>
